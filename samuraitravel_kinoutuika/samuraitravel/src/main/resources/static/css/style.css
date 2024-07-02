@@ -125,6 +125,13 @@ footer{
  .samuraitravel-search-form {
      max-width: 300px;
  }
+.samuraitravel-star {
+    color: #ffa500;
+} 
+
+.samuraitravel-star:focus {
+    color: #ffa500;
+}
 
 @media screen and (min-width: 1400px){
 	.samuraitravel-countainer {
