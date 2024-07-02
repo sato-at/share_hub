@@ -14,13 +14,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.example.samuraitravel.entity.Favorite;
 import com.example.samuraitravel.entity.House;
 import com.example.samuraitravel.entity.Review;
 import com.example.samuraitravel.entity.User;
 import com.example.samuraitravel.form.ReservationInputForm;
+import com.example.samuraitravel.repository.FavoriteRepository;
 import com.example.samuraitravel.repository.HouseRepository;
 import com.example.samuraitravel.repository.ReviewRepository;
 import com.example.samuraitravel.security.UserDetailsImpl;
+import com.example.samuraitravel.service.FavoriteService;
 import com.example.samuraitravel.service.ReviewService;
 
 @Controller
@@ -28,15 +31,20 @@ import com.example.samuraitravel.service.ReviewService;
 public class HouseController {
     private final HouseRepository houseRepository;     
     private final ReviewRepository reviewRepository;   
-    private final ReviewService reviewService;  
+    private final ReviewService reviewService;
+    private final FavoriteRepository favoriteRepository;
+    private final FavoriteService favoriteService;
  
-    public HouseController(HouseRepository houseRepository, ReviewRepository reviewRepository, ReviewService reviewService) {
-       this.houseRepository = houseRepository;      
-       this.reviewRepository = reviewRepository;
-       this.reviewService = reviewService;
-    }    
+	public HouseController(HouseRepository houseRepository, ReviewRepository reviewRepository,
+			ReviewService reviewService, FavoriteRepository favoriteRepository, FavoriteService favoriteService) {
+		this.houseRepository = houseRepository;
+		this.reviewRepository = reviewRepository;
+		this.reviewService = reviewService;
+		this.favoriteRepository = favoriteRepository;
+		this.favoriteService = favoriteService;
+	}    
   
-    @GetMapping
+	@GetMapping
     public String index(@RequestParam(name = "keyword", required = false) String keyword,
                         @RequestParam(name = "area", required = false) String area,
                         @RequestParam(name = "price", required = false) Integer price,  
@@ -91,11 +99,17 @@ public class HouseController {
     @GetMapping("/{id}")
     public String show(@PathVariable(name = "id") Integer id, Model model, @AuthenticationPrincipal UserDetailsImpl userDetailsImpl) {
         House house = houseRepository.getReferenceById(id);        
+        Favorite favorite = null;
         boolean hasUserAlreadyReviewed = false;        
+        boolean isFavorite = false;
          
         if (userDetailsImpl != null) {
             User user = userDetailsImpl.getUser();
             hasUserAlreadyReviewed = reviewService.hasUserAlreadyReviewed(house, user);           
+            isFavorite = favoriteService.isFavorite(house, user);
+			if (isFavorite) {
+				favorite = favoriteRepository.findByHouseAndUser(house, user);
+			}
         }
          
         List<Review> newReviews = reviewRepository.findTop6ByHouseOrderByCreatedAtDesc(house);        
@@ -103,9 +117,11 @@ public class HouseController {
         
         model.addAttribute("house", house);  
         model.addAttribute("reservationInputForm", new ReservationInputForm());
+        model.addAttribute("favorite", favorite);
         model.addAttribute("hasUserAlreadyReviewed", hasUserAlreadyReviewed);
         model.addAttribute("newReviews", newReviews);        
         model.addAttribute("totalReviewCount", totalReviewCount);        
+        model.addAttribute("isFavorite", isFavorite);
         
         return "houses/show";
     }    
